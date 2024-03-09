@@ -16,6 +16,7 @@ module.exports = class SQLDynamicWhere {
         GRATER_THEN_AND_EQUAL: '<=',
         LESS_THEN: '>',
         LESS_THEN_AND_EQUAL: '>=',
+        IN: 'in'
     })
 
     static Logic = Object.freeze({
@@ -48,11 +49,15 @@ module.exports = class SQLDynamicWhere {
 
 
 
-    add({ field, comparasion, value, logic = '' } = {}) {
-        this.#query = this.#query + `${this.#isFirst ? '' : ` ${logic} `}${this.#buildField(field)} ${comparasion} ?`;
-        this.#values.push(value);
-        this.#isFirst = false;
-        this.#isEndClause = true;
+    add({ field, comparasion, value, logic = '', additionFieldQuery = '' } = {}) {
+        if(comparasion == SQLDynamicWhere.Comparison.IN){
+            this.in({ field, logic }, value);
+        }else{
+            this.#query = this.#query + `${this.#isFirst ? '' : ` ${logic} `}${this.#buildField(field)} ${additionFieldQuery} ${comparasion} ?`;
+            this.#values.push(value);
+            this.#isFirst = false;
+            this.#isEndClause = true;
+        }
         return this;
     }
 
@@ -76,8 +81,8 @@ module.exports = class SQLDynamicWhere {
 
 
 
-    addMultipleCompareFields({ fields = [], comparasion, value, logic = '', scope = false, linkLogic = '' } = {}) {
-        if (fields.length == 0 || !value) return this;
+    addMultipleCompareFields({ fields = [], comparasion, value, logic = '', scope = false, linkLogic = '' } = {}){
+        if(fields.length == 0 || !value) return this;
 
         const query = SQLDynamicWhere.initialize();
         fields.forEach(field => {
@@ -92,8 +97,8 @@ module.exports = class SQLDynamicWhere {
 
 
 
-    addMultipleCompareFieldsAndValues({ fields = [], comparasion, values = [], logic = '', scope = false, linkLogic = '' } = {}) {
-        if (fields.length == 0 || values.length == 0 && fields.length != values.length) return this;
+    addMultipleCompareFieldsAndValues({ fields = [], comparasion, values = [], logic = '', scope = false, linkLogic = '' } = {}){
+        if(fields.length == 0 || values.length == 0 && fields.length != values.length) return this;
 
         const query = SQLDynamicWhere.initialize();
         fields.forEach((field, index) => {
@@ -108,8 +113,8 @@ module.exports = class SQLDynamicWhere {
 
 
 
-    addByRawArrayQueries({ queries = [], scope = false, linkLogic = '' } = {}) {
-        if (queries.length == 0) return this;
+    addByRawArrayQueries({ queries = [], scope = false, linkLogic = '' } = {}){
+        if(queries.length == 0) return this;
 
         const query = SQLDynamicWhere.initialize();
         queries.forEach(query => {
@@ -179,8 +184,8 @@ module.exports = class SQLDynamicWhere {
 
     getClauses({ includeWhere = false } = {}) {
         const ob = {
-            query: `${includeWhere ? 'WHERE ' : ''}${this.#query}`,
-            values: this.#values
+            query: this.getQuery({ includeWhere }),
+            values: this.getValues()
         };
 
         if (!this.#checkClose) {
@@ -193,6 +198,9 @@ module.exports = class SQLDynamicWhere {
     }
 
 
+    forceMarkAsEndQuery(){
+        this.#isEndClause = true;
+    }
 
     getValues() {
         return this.#values;
@@ -201,7 +209,7 @@ module.exports = class SQLDynamicWhere {
 
 
     getQuery({ includeWhere = false } = {}) {
-        return `${includeWhere ? 'WHERE ' : ''}${this.#query}`;
+        return this.#query.length == 0 ? '' : `${includeWhere ? 'WHERE ' : ''}${this.#query}`;
     }
 
 
