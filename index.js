@@ -62,6 +62,14 @@ module.exports = class SQLDynamicWhere {
     }
 
 
+    addRaw({query = '', values = [], logic}){
+        this.#query = this.#query + `${this.#isFirst ? '' : ` ${logic} `}${query}`;
+        this.#values = this.#values.concat(values);
+        this.#isFirst = false;
+        this.#isEndClause = true;
+    }
+
+
     addMultipleCompareValues({ field, comparasion, values = [], logic = '', scope = false, linkLogic = '' } = {}) {
         if (values.length == 0) {
             return this;
@@ -158,6 +166,7 @@ module.exports = class SQLDynamicWhere {
 
 
     and() {
+        if(this.#isFirst) return;
         this.#query = this.#query + " AND ";
         this.#isEndClause = false;
         return this;
@@ -166,6 +175,7 @@ module.exports = class SQLDynamicWhere {
 
 
     or() {
+        if(this.#isFirst) return;
         this.#query = this.#query + " OR ";
         this.#isEndClause = false;
         return this;
